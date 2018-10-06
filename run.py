@@ -6,8 +6,6 @@ from sc2 import Difficulty, Race
 from sc2.player import Bot, Computer
 
 from __init__ import run_ladder_game
-
-# Load bot
 from ling_flood import EarlyAggro
 
 bot = Bot(Race.Zerg, EarlyAggro())
@@ -33,7 +31,7 @@ if __name__ == "__main__":
             ]
         )
 
-        sc2.run_game(sc2.maps.get(random_map), [bot, Computer(Race.Protoss, Difficulty.CheatVision)], realtime=False)
+        sc2.run_game(sc2.maps.get(random_map), [bot, Computer(Race.Random, Difficulty.CheatVision)], realtime=False)
         # sc2.run_game(sc2.maps.get("drone_worker_defense"), [bot], realtime=True)
         # sc2.run_game(sc2.maps.get("drone_scout_defense"), [bot], realtime=True)
         # sc2.run_game(sc2.maps.get("lings_dodge_tanks"), [bot], realtime=True)

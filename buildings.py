@@ -1,37 +1,56 @@
 """Every logic for building structures go here"""
 from sc2.constants import (
     BARRACKS,
-    GATEWAY,
     EVOLUTIONCHAMBER,
     EXTRACTOR,
+    GATEWAY,
     HATCHERY,
-    HIVE,
     INFESTATIONPIT,
-    LAIR,
     SPAWNINGPOOL,
     SPINECRAWLER,
+    SPIRE,
     SPORECRAWLER,
     ULTRALISKCAVERN,
     ZERGGROUNDARMORSLEVEL2,
 )
+from sc2.position import Point2
 
 
-class builder:
+class Builder:
+    """Groups every structure building logic and placement auxiliaries"""
+
     def __init__(self):
         self.enemy_flying_dmg_units = False
+        self.ordered_expansions = []
         self.worker_to_first_base = False
+
+    async def all_buildings(self):
+        """Builds every building, logic should be improved"""
+        await self.build_cavern()
+        await self.build_evochamber()
+        self.build_extractor()
+        await self.build_hatchery()
+        await self.build_pit()
+        await self.build_pool()
+        await self.build_spines()
+        await self.build_spores()
 
     async def build_cavern(self):
         """Builds the ultralisk cavern, placement can maybe be improved(far from priority)"""
         evochamber = self.evochambers
         if (
             evochamber
-            and self.units(HIVE)
+            and self.hives
             and not self.caverns
             and self.can_afford(ULTRALISKCAVERN)
             and not self.already_pending(ULTRALISKCAVERN)
         ):
-            await self.build(ULTRALISKCAVERN, near=evochamber.random.position)
+            await self.build(
+                ULTRALISKCAVERN,
+                near=self.townhalls.furthest_to(self.game_info.map_center).position.towards(
+                    self.main_base_ramp.depot_in_middle, 6
+                ),
+            )
 
     async def build_evochamber(self):
         """Builds the evolution chambers, placement can maybe be improved(far from priority),
@@ -41,19 +60,22 @@ class builder:
         evochamber = self.evochambers
         if (
             pool.ready
-            and self.abilities_list
             and self.can_afford(EVOLUTIONCHAMBER)
             and len(self.townhalls.ready) >= 3
             and len(evochamber) + self.already_pending(EVOLUTIONCHAMBER) < 2
         ):
-            await self.build(EVOLUTIONCHAMBER, near=pool.first.position.towards(self._game_info.map_center, 3))
+            furthest_base = self.townhalls.furthest_to(self.game_info.map_center)
+            second_base = (self.townhalls - {furthest_base}).closest_to(furthest_base)
+            await self.build(
+                EVOLUTIONCHAMBER, near=second_base.position.towards_with_random_angle(self.game_info.map_center, -10)
+            )
 
     def build_extractor(self):
         """Couldnt find another way to build the geysers its way to inefficient,
          also the logic can be improved, sometimes it over collect vespene sometime it under collect"""
         if self.vespene < self.minerals * 2:
             if self.townhalls.ready and self.can_afford(EXTRACTOR):
-                gas = self.units(EXTRACTOR)
+                gas = self.extractors
                 gas_amount = len(gas)  # so it calculate just once per step
                 vgs = self.state.vespene_geyser.closer_than(10, self.townhalls.ready.random)
                 for geyser in vgs:
@@ -89,58 +111,64 @@ class builder:
             and not self.already_pending(HATCHERY)
             and not (self.known_enemy_structures.closer_than(50, self.start_location) and self.time < 300)
         ):
-            if base_amount <= 3:
+
+            if base_amount <= 4:
                 if base_amount == 2:
-                    if self.spines:
+                    if self.spines or self.time > 330:
                         await self.expand_now()
                 else:
-
-                    await self.expand_now()
+                    # if base_amount == 3:
+                    #     await self.build_macrohatch()
+                    # else:
+                    await self.place_hatchery()
             elif self.caverns:
-                await self.expand_now()
+                await self.place_hatchery()
+
+    # async def build_macrohatch(self):
+    #     await self.build(
+    #         HATCHERY,
+    #         near=self.townhalls.furthest_to(self.game_info.map_center).position.towards_with_random_angle(
+    #             self.game_info.map_center, 10
+    #         ),
+    #     )
 
     async def build_pit(self):
         """Builds the infestation pit, placement can maybe be improved(far from priority)"""
         evochamber = self.evochambers
-        if (
-            evochamber
-            and not self.pits
-            and self.can_afford(INFESTATIONPIT)
-            and not self.already_pending(INFESTATIONPIT)
-            and self.units(LAIR).ready
-            and self.already_pending_upgrade(ZERGGROUNDARMORSLEVEL2) > 0
-            and self.townhalls
-        ):
-            await self.build(INFESTATIONPIT, near=evochamber.first.position)
+        if evochamber and not self.pits:
+            if (
+                self.can_afford(INFESTATIONPIT)
+                and not self.already_pending(INFESTATIONPIT)
+                and self.lairs.ready
+                and self.already_pending_upgrade(ZERGGROUNDARMORSLEVEL2) > 0
+                and self.townhalls
+            ):
+                await self.build(
+                    INFESTATIONPIT,
+                    near=self.townhalls.furthest_to(self.game_info.map_center).position.towards_with_random_angle(
+                        self.game_info.map_center, -10
+                    ),
+                )
 
     async def build_pool(self):
         """Builds the spawning pol, placement can maybe be improved(far from priority)
         The logic vs proxies is yet to be tested, maybe it can be more adaptable vs some strategies"""
         base = self.townhalls
-        if (not self.already_pending(SPAWNINGPOOL) and not self.pools and self.can_afford(SPAWNINGPOOL)) and (
-            (len(base) >= 2) or (self.close_enemy_production and self.time < 300)
-        ):
-            await self.build(SPAWNINGPOOL, base.first.position.towards(self._game_info.map_center, 5))
+        if not self.already_pending(SPAWNINGPOOL) and not self.pools and self.can_afford(SPAWNINGPOOL):
+            if len(base) >= 2 or (self.close_enemy_production and self.time < 300):
+                await self.build(
+                    SPAWNINGPOOL,
+                    near=self.townhalls.furthest_to(self.game_info.map_center).position.towards_with_random_angle(
+                        self.game_info.map_center, -10
+                    ),
+                )
 
-    async def build_spores(self):
-        """Build spores and spines, the spines are ok for now anti proxy are yet to be tested,
-         spores needs better placement and logic for now tho"""
-        base = self.townhalls
-        spores = self.units(SPORECRAWLER)
+    async def build_spines(self):
+        """Build spines, its ok for now but anti proxy are yet to be tested,"""
+        bases = self.townhalls
         if self.pools.ready:
-            if not self.enemy_flying_dmg_units:
-                if self.known_enemy_units.flying:
-                    air_units = [au for au in self.known_enemy_units.flying if au.can_attack_ground]
-                    if air_units:
-                        self.enemy_flying_dmg_units = True
-            else:
-                if base:
-                    selected_base = base.random
-                    if len(spores) < len(base.ready) and not self.already_pending(SPORECRAWLER):
-                        if not spores.closer_than(15, selected_base.position) and self.can_afford(SPORECRAWLER):
-                            await self.build(SPORECRAWLER, near=selected_base.position)
             if (
-                len(self.spines) + self.already_pending(SPINECRAWLER) < 2 <= len(base.ready)
+                len(self.spines) + self.already_pending(SPINECRAWLER) < 2 <= len(bases.ready)
                 and self.time <= 360
                 or (
                     self.close_enemy_production
@@ -151,18 +179,50 @@ class builder:
             ):
                 await self.build(
                     SPINECRAWLER,
-                    near=self.townhalls.closest_to(self._game_info.map_center).position.towards(
-                        self._game_info.map_center, 9
-                    ),
+                    near=bases.closest_to(self._game_info.map_center).position.towards(self._game_info.map_center, 9),
                 )
 
-    async def all_buildings(self):
-        """Builds every building, logic should be improved"""
-        await self.build_cavern()
-        await self.build_evochamber()
-        self.build_extractor()
-        await self.build_hatchery()
-        await self.build_pit()
-        await self.build_pool()
-        await self.build_spores()
+    async def build_spire(self):
+        """Build the spire if only floating buildings left"""
+        if not self.spires and self.can_afford(SPIRE) and self.floating_buildings_bm and (self.lairs or self.hives):
+            await self.build(SPIRE, near=self.pools.first)
 
+    async def build_spores(self):
+        """Build spores placement is fixed, its ok for now"""
+        bases = self.townhalls
+        spores = self.units(SPORECRAWLER)
+        if self.pools.ready:
+            if (not self.enemy_flying_dmg_units) and self.time < 360:
+                if self.known_enemy_units.flying:
+                    air_units = [au for au in self.known_enemy_units.flying if au.can_attack_ground]
+                    if air_units:
+                        self.enemy_flying_dmg_units = True
+            else:
+                for base in bases:
+                    if len(spores) + self.already_pending(SPORECRAWLER) < len(bases.ready) and self.can_afford(
+                        SPORECRAWLER
+                    ):
+                        spore_position = (
+                            (self.state.mineral_field | self.state.vespene_geyser)
+                            .closer_than(10, base)
+                            .center.towards(base, 1)
+                        )
+                        if not spores.closer_than(15, spore_position):
+                            await self.build(SPORECRAWLER, spore_position)
+
+    async def place_hatchery(self):
+        """It expands on the optimal location"""
+        if self.can_afford(HATCHERY):
+            for expansion in self.ordered_expansions:
+                if await self.can_place(HATCHERY, expansion):
+                    drone = self.drones.closest_to(expansion)
+                    self.actions.append(drone.build(HATCHERY, expansion))
+                    break
+
+    def prepare_expansions(self):
+        """Put all expansion placement in an optimal order"""
+        start = self.start_location
+        expansions = self.expansion_locations
+        waypoints = [point for point in expansions]
+        waypoints.sort(key=lambda p: (p[0] - start[0]) ** 2 + (p[1] - start[1]) ** 2)
+        self.ordered_expansions = [Point2((p[0], p[1])) for p in waypoints]

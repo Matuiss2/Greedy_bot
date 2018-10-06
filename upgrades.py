@@ -6,8 +6,14 @@ from sc2.constants import (
     OVERLORDSPEED,
     RESEARCH_CHITINOUSPLATING,
     RESEARCH_PNEUMATIZEDCARAPACE,
+    RESEARCH_ZERGGROUNDARMORLEVEL1,
+    RESEARCH_ZERGGROUNDARMORLEVEL2,
+    RESEARCH_ZERGGROUNDARMORLEVEL3,
     RESEARCH_ZERGLINGADRENALGLANDS,
     RESEARCH_ZERGLINGMETABOLICBOOST,
+    RESEARCH_ZERGMELEEWEAPONSLEVEL1,
+    RESEARCH_ZERGMELEEWEAPONSLEVEL2,
+    RESEARCH_ZERGMELEEWEAPONSLEVEL3,
     SPAWNINGPOOL,
     ULTRALISKCAVERN,
     ZERGLINGATTACKSPEED,
@@ -15,20 +21,28 @@ from sc2.constants import (
 )
 
 
-class upgrades_control:
+class UpgradesControl:
+    """Group every upgrade dividing it by the structure that host it"""
+
     async def evochamber_upgrades(self):
         """Can be rewritten so it doesnt need the list,
         if the evochamber gets destroyed while upgrading it will never try again, can be improved """
+        upgrade_list = [
+            RESEARCH_ZERGMELEEWEAPONSLEVEL1,
+            RESEARCH_ZERGMELEEWEAPONSLEVEL2,
+            RESEARCH_ZERGMELEEWEAPONSLEVEL3,
+            RESEARCH_ZERGGROUNDARMORLEVEL1,
+            RESEARCH_ZERGGROUNDARMORLEVEL2,
+            RESEARCH_ZERGGROUNDARMORLEVEL3,
+        ]
         evochamber = self.units(EVOLUTIONCHAMBER).ready
-        if self.abilities_list and evochamber.idle:
+        if evochamber.idle:
             for evo in evochamber.idle:
-                abilities = await self.get_available_abilities(evo)
-                for ability in self.abilities_list:
-                    if ability in abilities:
-                        if self.can_afford(ability):
-                            self.actions.append(evo(ability))
-                            self.abilities_list.remove(ability)
-                            break
+                upgrades = await self.get_available_abilities(evo)
+                for upgrade in upgrades:
+                    if upgrade in upgrade_list and self.can_afford(upgrade):
+                        self.actions.append(evo(upgrade))
+                        break
 
     def hatchery_cavern_upgrades(self):
         """Burrow is missing, find the right timing for it"""
@@ -57,6 +71,7 @@ class upgrades_control:
                     self.actions.append(pool.first(RESEARCH_ZERGLINGADRENALGLANDS))
 
     async def all_upgrades(self):
+        """Execute all upgrade functions"""
         await self.evochamber_upgrades()
         self.hatchery_cavern_upgrades()
         self.pool_upgrades()
