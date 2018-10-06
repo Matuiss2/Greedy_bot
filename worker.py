@@ -12,104 +12,20 @@ class WorkerControl:
         self.defender_tags = None
         self.collect_gas_for_speedling = False
 
-    async def split_workers(self):
-        """Split the workers on the beginning """
-        for drone in self.drones:
-            closest_mineral_patch = self.state.mineral_field.closest_to(drone)
-            self.actions.append(drone.gather(closest_mineral_patch))
-
-    async def defend_worker_rush(self):  # Too many blocks(pylint)
-        """It destroys every worker rush without losing more than 2 workers,
-         it counter scouting worker rightfully now, its too big and can be split"""
-        base = self.units(HATCHERY).ready
-        if base:
-            enemy_units_close = self.known_enemy_units.closer_than(8, base.first).of_type([PROBE, DRONE, SCV])
-            if enemy_units_close and not self.defender_tags:
-                self.build_defense_force(len(enemy_units_close))
-            if self.defender_tags and not enemy_units_close:
-                self.clear_defense_force(base)
-            if self.defender_tags and enemy_units_close:
-                self.refill_defense_force(len(enemy_units_close))
-                for drone in self.defenders:
-                    # 6 hp is the lowest you can take a hit and still survive
-                    if not self.save_lowhp_drone(drone, base):
-                        if drone.weapon_cooldown <= 0.60:
-                            self.attack_close_target(drone, enemy_units_close)
-                        else:
-                            if not self.move_to_next_target(drone, enemy_units_close):
-                                self.move_lowhp(drone, enemy_units_close)
-
-    def save_lowhp_drone(self, drone, base):
-        """when the drone cant take more than 2 hits from another worker, it goes back to mining"""
-        if drone.health <= 6:
-            if not drone.is_collecting:
-                mineral_field = self.state.mineral_field.closest_to(base.first.position)
-                self.actions.append(drone.gather(mineral_field))
-            else:
-                self.defender_tags.remove(drone.tag)
-            return True
-        return None
-
     def build_defense_force(self, enemy_count):
         """Group the defender force using the tags of the highest hp units up to twice the enemy count value"""
         self.defender_tags = self.defense_force(2 * enemy_count)
-
-    def refill_defense_force(self, enemy_count):
-        """Put more worker into the fight if the defenders force is bellow the optimal"""
-        self.defenders = self.drones.filter(lambda worker: worker.tag in self.defender_tags and worker.health > 0)
-        defender_deficit = self.calculate_defender_deficit(enemy_count)
-
-        if defender_deficit > 0:
-            additional_drones = self.defense_force(defender_deficit)
-            self.defender_tags = self.defender_tags + additional_drones
-
-    def clear_defense_force(self, base):
-        """Put all defense force back to gathering if its not needed anymore"""
-        if self.defenders:
-            for drone in self.defenders:
-                self.actions.append(drone.gather(self.state.mineral_field.closest_to(base.first)))
-                continue
-        self.defender_tags = []
-        self.defenders = None
-
-    def defense_force(self, count):
-        """Get the tags of the high hp drones"""
-        highest_hp_drones = self.highest_hp_drones(count)
-        return [unit.tag for unit in highest_hp_drones]
-
-    def highest_hp_drones(self, count):
-        """Select the high hp drones"""
-        return heapq.nlargest(count, self.drones.collecting, key=lambda drones: drones.health)
 
     def calculate_defender_deficit(self, enemy_count):
         """Finds the difference of actual defenders to the optimal number"""
         return min(len(self.drones) - 1, 2 * enemy_count) - len(self.defenders)
 
-    async def distribute_drones(self):
-        """Group all helpers for distributing workers optimally"""
-        mining_bases = self.units.of_type({HATCHERY, LAIR, HIVE}).ready.filter(lambda base: base.ideal_harvesters > 0)
-        mineral_fields = self.mineral_fields_of(mining_bases)
-        mining_places = mining_bases | self.units(EXTRACTOR).ready
-
-        self.gather_gas()
-
-        deficit_bases, workers_to_distribute = self.calculate_distribution(mining_places)
-
-        if not deficit_bases:
-            for drone in self.drones.idle:
-                if mineral_fields:
-                    closest_field = mineral_fields.closest_to(drone)
-                    self.actions.append(drone.gather(closest_field))
-            return
-
-        self.distribute_to_deficits(mining_bases, workers_to_distribute, mineral_fields, deficit_bases)
-
     def calculate_distribution(self, mining_bases):
         """Calculates base deficits amount and workers that have to move amount"""
         workers_to_distribute = [drone for drone in self.drones.idle]
         mineral_tags = {mf.tag for mf in self.state.mineral_field}
-        mining_places = mining_bases | self.units(EXTRACTOR).ready
-        extractor_tags = {ref.tag for ref in self.units(EXTRACTOR)}
+        mining_places = mining_bases | self.extractors.ready
+        extractor_tags = {ref.tag for ref in self.extractors}
         deficit_bases = []
 
         for mining_place in mining_places:
@@ -131,19 +47,59 @@ class WorkerControl:
 
         return deficit_bases, workers_to_distribute
 
-    def mineral_fields_deficit(self, mineral_fields, deficit_bases):
-        """Calculates the mineral fields deficits"""
-        if deficit_bases:
-            worker_order_targets = {worker.order_target for worker in self.drones.collecting}
-            mineral_fields_deficit = [mf for mf in mineral_fields.closer_than(8, deficit_bases[0][0])]
-            return sorted(
-                mineral_fields_deficit,
-                key=lambda mineral_field: (
-                    mineral_field.tag not in worker_order_targets,
-                    mineral_field.mineral_contents,
-                ),
-            )
-        return []
+    def clear_defense_force(self, base):
+        """Put all defense force back to gathering if its not needed anymore"""
+        if self.defenders:
+            for drone in self.defenders:
+                self.actions.append(drone.gather(self.state.mineral_field.closest_to(base.first)))
+                continue
+        self.defender_tags = []
+        self.defenders = None
+
+    async def defend_worker_rush(self):  # Too many blocks(pylint)
+        """It destroys every worker rush without losing more than 2 workers,
+         it counter scouting worker rightfully now, its too big and can be split"""
+        base = self.hatcheries.ready
+        if base:
+            enemy_units_close = self.known_enemy_units.closer_than(8, base.first).of_type([PROBE, DRONE, SCV])
+            if enemy_units_close and not self.defender_tags:
+                self.build_defense_force(len(enemy_units_close))
+            if self.defender_tags and not enemy_units_close:
+                self.clear_defense_force(base)
+            if self.defender_tags and enemy_units_close:
+                self.refill_defense_force(len(enemy_units_close))
+                for drone in self.defenders:
+                    # 6 hp is the lowest you can take a hit and still survive
+                    if not self.save_lowhp_drone(drone, base):
+                        if drone.weapon_cooldown <= 0.60:
+                            self.attack_close_target(drone, enemy_units_close)
+                        else:
+                            if not self.move_to_next_target(drone, enemy_units_close):
+                                self.move_lowhp(drone, enemy_units_close)
+
+    def defense_force(self, count):
+        """Get the tags of the high hp drones"""
+        highest_hp_drones = self.highest_hp_drones(count)
+        return [unit.tag for unit in highest_hp_drones]
+
+    async def distribute_drones(self):
+        """Group all helpers for distributing workers optimally"""
+        mining_bases = self.units.of_type({HATCHERY, LAIR, HIVE}).ready.filter(lambda base: base.ideal_harvesters > 0)
+        mineral_fields = self.mineral_fields_of(mining_bases)
+        mining_places = mining_bases | self.extractors.ready
+
+        self.gather_gas()
+
+        deficit_bases, workers_to_distribute = self.calculate_distribution(mining_places)
+
+        if not deficit_bases:
+            for drone in self.drones.idle:
+                if mineral_fields:
+                    closest_field = mineral_fields.closest_to(drone)
+                    self.actions.append(drone.gather(closest_field))
+            return
+
+        self.distribute_to_deficits(mining_bases, workers_to_distribute, mineral_fields, deficit_bases)
 
     def distribute_to_deficits(self, mining_bases, workers_to_distribute, mineral_fields, deficit_bases):
         """Send worker to fill the deficits"""
@@ -159,15 +115,16 @@ class WorkerControl:
                 if self.distribute_to_extractors(deficit_extractors):
                     self.distribute_to_extractor(deficit_extractors, worker)
 
-    def distribute_to_extractors(self, deficit_extractors):
-        """Conditions to send workers to extractors"""
-        return self.units(EXTRACTOR).ready and deficit_extractors and self.require_gas
     def distribute_to_extractor(self, deficit_extractors, worker):
         """Send worker to the extractor and remove it as target if full"""
         self.actions.append(worker.gather(deficit_extractors[0][0]))
         deficit_extractors[0][1] += 1
         if deficit_extractors[0][1] == 0:
             del deficit_extractors[0]
+
+    def distribute_to_extractors(self, deficit_extractors):
+        """Conditions to send workers to extractors"""
+        return self.extractors.ready and deficit_extractors and self.require_gas
 
     def distribute_to_mineral_field(self, mineral_fields_deficit, worker, deficit_bases):
         """Send workers to minerals and remove it as target if full"""
@@ -182,14 +139,46 @@ class WorkerControl:
     def gather_gas(self):
         """Send workers to gas only if extra is needed"""
         if self.require_gas:
-            for extractor in self.units(EXTRACTOR):
+            for extractor in self.extractors:
                 required_drones = extractor.ideal_harvesters - extractor.assigned_harvesters
                 if 0 < required_drones < self.drones.amount:
                     for drone in self.drones.random_group_of(required_drones):
                         self.actions.append(drone.gather(extractor))
 
+    def highest_hp_drones(self, count):
+        """Select the high hp drones"""
+        return heapq.nlargest(count, self.drones.collecting, key=lambda drones: drones.health)
+
+    def mineral_fields_deficit(self, mineral_fields, deficit_bases):
+        """Calculates the mineral fields deficits"""
+        if deficit_bases:
+            worker_order_targets = {worker.order_target for worker in self.drones.collecting}
+            mineral_fields_deficit = [mf for mf in mineral_fields.closer_than(8, deficit_bases[0][0])]
+            return sorted(
+                mineral_fields_deficit,
+                key=lambda mineral_field: (
+                    mineral_field.tag not in worker_order_targets,
+                    mineral_field.mineral_contents,
+                ),
+            )
+        return []
+
+    def mineral_fields_of(self, bases):
+        """returns the mineral fields that belong to that base"""
+        return self.state.mineral_field.filter(lambda field: any([field.distance_to(base) <= 8 for base in bases]))
+
+    def refill_defense_force(self, enemy_count):
+        """Put more worker into the fight if the defenders force is bellow the optimal"""
+        self.defenders = self.drones.filter(lambda worker: worker.tag in self.defender_tags and worker.health > 0)
+        defender_deficit = self.calculate_defender_deficit(enemy_count)
+
+        if defender_deficit > 0:
+            additional_drones = self.defense_force(defender_deficit)
+            self.defender_tags = self.defender_tags + additional_drones
+
     @property
     def require_gas(self):
+        """returns true if require_gas_for_speedlings is True and we have more minerals than vespene"""
         return self.require_gas_for_speedlings or self.vespene < self.minerals
 
     @property
@@ -197,6 +186,19 @@ class WorkerControl:
         """returns true if zergling speed is not started and vespene count is lower than 100"""
         return not self.already_pending_upgrade(ZERGLINGMOVEMENTSPEED) and self.vespene < 100
 
-    def mineral_fields_of(self, bases):
-        """returns the mineral fields that belong to that base"""
-        return self.state.mineral_field.filter(lambda field: any([field.distance_to(base) <= 8 for base in bases]))
+    def save_lowhp_drone(self, drone, base):
+        """when the drone cant take more than 2 hits from another worker, it goes back to mining"""
+        if drone.health <= 6:
+            if not drone.is_collecting:
+                mineral_field = self.state.mineral_field.closest_to(base.first.position)
+                self.actions.append(drone.gather(mineral_field))
+            else:
+                self.defender_tags.remove(drone.tag)
+            return True
+        return None
+
+    async def split_workers(self):
+        """Split the workers on the beginning """
+        for drone in self.drones:
+            closest_mineral_patch = self.state.mineral_field.closest_to(drone)
+            self.actions.append(drone.gather(closest_mineral_patch))

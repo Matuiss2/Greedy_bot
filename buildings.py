@@ -5,11 +5,10 @@ from sc2.constants import (
     EXTRACTOR,
     GATEWAY,
     HATCHERY,
-    HIVE,
     INFESTATIONPIT,
-    LAIR,
     SPAWNINGPOOL,
     SPINECRAWLER,
+    SPIRE,
     SPORECRAWLER,
     ULTRALISKCAVERN,
     ZERGGROUNDARMORSLEVEL2,
@@ -22,23 +21,26 @@ class Builder:
 
     def __init__(self):
         self.enemy_flying_dmg_units = False
-        self.worker_to_first_base = False
         self.ordered_expansions = []
+        self.worker_to_first_base = False
 
-    def prepare_expansions(self):
-        """Put all expansion placement in an optimal order"""
-        start = self.start_location
-        expansions = self.expansion_locations
-        waypoints = [point for point in expansions]
-        waypoints.sort(key=lambda p: (p[0] - start[0]) ** 2 + (p[1] - start[1]) ** 2)
-        self.ordered_expansions = [Point2((p[0], p[1])) for p in waypoints]
+    async def all_buildings(self):
+        """Builds every building, logic should be improved"""
+        await self.build_cavern()
+        await self.build_evochamber()
+        self.build_extractor()
+        await self.build_hatchery()
+        await self.build_pit()
+        await self.build_pool()
+        await self.build_spines()
+        await self.build_spores()
 
     async def build_cavern(self):
         """Builds the ultralisk cavern, placement can maybe be improved(far from priority)"""
         evochamber = self.evochambers
         if (
             evochamber
-            and self.units(HIVE)
+            and self.hives
             and not self.caverns
             and self.can_afford(ULTRALISKCAVERN)
             and not self.already_pending(ULTRALISKCAVERN)
@@ -73,7 +75,7 @@ class Builder:
          also the logic can be improved, sometimes it over collect vespene sometime it under collect"""
         if self.vespene < self.minerals * 2:
             if self.townhalls.ready and self.can_afford(EXTRACTOR):
-                gas = self.units(EXTRACTOR)
+                gas = self.extractors
                 gas_amount = len(gas)  # so it calculate just once per step
                 vgs = self.state.vespene_geyser.closer_than(10, self.townhalls.ready.random)
                 for geyser in vgs:
@@ -130,15 +132,6 @@ class Builder:
     #         ),
     #     )
 
-    async def place_hatchery(self):
-        """It expands on the optimal location"""
-        if self.can_afford(HATCHERY):
-            for expansion in self.ordered_expansions:
-                if await self.can_place(HATCHERY, expansion):
-                    drone = self.drones.closest_to(expansion)
-                    await self.do(drone.build(HATCHERY, expansion))
-                    break
-
     async def build_pit(self):
         """Builds the infestation pit, placement can maybe be improved(far from priority)"""
         evochamber = self.evochambers
@@ -146,7 +139,7 @@ class Builder:
             if (
                 self.can_afford(INFESTATIONPIT)
                 and not self.already_pending(INFESTATIONPIT)
-                and self.units(LAIR).ready
+                and self.lairs.ready
                 and self.already_pending_upgrade(ZERGGROUNDARMORSLEVEL2) > 0
                 and self.townhalls
             ):
@@ -169,6 +162,30 @@ class Builder:
                         self.game_info.map_center, -10
                     ),
                 )
+
+    async def build_spines(self):
+        """Build spines, its ok for now but anti proxy are yet to be tested,"""
+        bases = self.townhalls
+        if self.pools.ready:
+            if (
+                len(self.spines) + self.already_pending(SPINECRAWLER) < 2 <= len(bases.ready)
+                and self.time <= 360
+                or (
+                    self.close_enemy_production
+                    and self.time <= 300
+                    and len(self.spines) + self.already_pending(SPINECRAWLER)
+                    < len(self.known_enemy_structures.of_type({BARRACKS, GATEWAY}).closer_than(50, self.start_location))
+                )
+            ):
+                await self.build(
+                    SPINECRAWLER,
+                    near=bases.closest_to(self._game_info.map_center).position.towards(self._game_info.map_center, 9),
+                )
+
+    async def build_spire(self):
+        """Build the spire if only floating buildings left"""
+        if not self.spires and self.can_afford(SPIRE) and self.floating_buildings_bm and (self.lairs or self.hives):
+            await self.build(SPIRE, near=self.pools.first)
 
     async def build_spores(self):
         """Build spores placement is fixed, its ok for now"""
@@ -193,32 +210,19 @@ class Builder:
                         if not spores.closer_than(15, spore_position):
                             await self.build(SPORECRAWLER, spore_position)
 
-    async def build_spines(self):
-        """Build spines, its ok for now but anti proxy are yet to be tested,"""
-        bases = self.townhalls
-        if self.pools.ready:
-            if (
-                len(self.spines) + self.already_pending(SPINECRAWLER) < 2 <= len(bases.ready)
-                and self.time <= 360
-                or (
-                    self.close_enemy_production
-                    and self.time <= 300
-                    and len(self.spines) + self.already_pending(SPINECRAWLER)
-                    < len(self.known_enemy_structures.of_type({BARRACKS, GATEWAY}).closer_than(50, self.start_location))
-                )
-            ):
-                await self.build(
-                    SPINECRAWLER,
-                    near=bases.closest_to(self._game_info.map_center).position.towards(self._game_info.map_center, 9),
-                )
+    async def place_hatchery(self):
+        """It expands on the optimal location"""
+        if self.can_afford(HATCHERY):
+            for expansion in self.ordered_expansions:
+                if await self.can_place(HATCHERY, expansion):
+                    drone = self.drones.closest_to(expansion)
+                    self.actions.append(drone.build(HATCHERY, expansion))
+                    break
 
-    async def all_buildings(self):
-        """Builds every building, logic should be improved"""
-        await self.build_cavern()
-        await self.build_evochamber()
-        self.build_extractor()
-        await self.build_hatchery()
-        await self.build_pit()
-        await self.build_pool()
-        await self.build_spores()
-        await self.build_spines()
+    def prepare_expansions(self):
+        """Put all expansion placement in an optimal order"""
+        start = self.start_location
+        expansions = self.expansion_locations
+        waypoints = [point for point in expansions]
+        waypoints.sort(key=lambda p: (p[0] - start[0]) ** 2 + (p[1] - start[1]) ** 2)
+        self.ordered_expansions = [Point2((p[0], p[1])) for p in waypoints]

@@ -7,8 +7,14 @@ from sc2.constants import (
     CREEPTUMORQUEEN,
     DRONE,
     EVOLUTIONCHAMBER,
+    EXTRACTOR,
     GATEWAY,
+    HATCHERY,
+    HIVE,
     INFESTATIONPIT,
+    LAIR,
+    LARVA,
+    OVERLORD,
     OVERSEER,
     PHOTONCANNON,
     PROBE,
@@ -16,6 +22,7 @@ from sc2.constants import (
     SCV,
     SPAWNINGPOOL,
     SPINECRAWLER,
+    SPIRE,
     ULTRALISK,
     ULTRALISKCAVERN,
     ZERGLING,
@@ -38,45 +45,60 @@ class EarlyAggro(
     """It makes periodic attacks with good surrounding and targeting micro, it goes ultras end-game"""
 
     def __init__(self):
-        WorkerControl.__init__(self)
+        ArmyControl.__init__(self)
         Builder.__init__(self)
         CreepControl.__init__(self)
         ExtraThings.__init__(self)
-        ArmyControl.__init__(self)
-        self.close_enemies_to_base = False
-        self.close_enemy_production = False
+        WorkerControl.__init__(self)
         self.actions = []
         self.locations = []
-        self.drones = None
-        self.queens = None
-        self.zerglings = None
-        self.ultralisks = None
-        self.overseers = None
-        self.evochambers = None
+        self.close_enemies_to_base = False
+        self.close_enemy_production = False
+        self.floating_buildings_bm = False
         self.caverns = None
+        self.drones = None
+        self.evochambers = None
+        self.extractors = None
+        self.hatcheries = None
+        self.hives = None
+        self.larvae = None
+        self.lairs = None
+        self.overlords = None
+        self.overseers = None
         self.pools = None
         self.pits = None
+        self.queens = None
         self.spines = None
+        self.spires = None
         self.tumors = None
+        self.ultralisks = None
+        self.zerglings = None
         self.retreat_units = set()
 
     async def on_step(self, iteration):
         """Calls used units here, so it just calls it once per loop"""
-        self.drones = self.units(DRONE)
-        self.queens = self.units(QUEEN)
-        self.zerglings = self.units(ZERGLING)
-        self.ultralisks = self.units(ULTRALISK)
-        self.overseers = self.units(OVERSEER)
-        self.evochambers = self.units(EVOLUTIONCHAMBER)
-        self.caverns = self.units(ULTRALISKCAVERN)
-        self.pools = self.units(SPAWNINGPOOL)
-        self.pits = self.units(INFESTATIONPIT)
-        self.spines = self.units(SPINECRAWLER)
         self.actions = []
         self.close_enemies_to_base = False
         self.close_enemy_production = False
-        self.tumors = self.units(CREEPTUMORQUEEN) | self.units(CREEPTUMOR) | self.units(CREEPTUMORBURROWED)
+        self.caverns = self.units(ULTRALISKCAVERN)
+        self.drones = self.units(DRONE)
+        self.evochambers = self.units(EVOLUTIONCHAMBER)
+        self.extractors = self.units(EXTRACTOR)
+        self.hatcheries = self.units(HATCHERY)
+        self.hives = self.units(HIVE)
+        self.lairs = self.units(LAIR)
+        self.larvae = self.units(LARVA)
+        self.overlords = self.units(OVERLORD)
+        self.overseers = self.units(OVERSEER)
+        self.pools = self.units(SPAWNINGPOOL)
+        self.pits = self.units(INFESTATIONPIT)
+        self.queens = self.units(QUEEN)
+        self.spines = self.units(SPINECRAWLER)
+        self.spires = self.units(SPIRE)
+        self.ultralisks = self.units(ULTRALISK)
+        self.zerglings = self.units(ZERGLING)
 
+        self.tumors = self.units(CREEPTUMORQUEEN) | self.units(CREEPTUMOR) | self.units(CREEPTUMORBURROWED)
         if iteration == 0:  # Initialize some "global" variables
             self._client.game_step = 4  # actions every 4 frames-(optimizing so we can get it to 1 is ideal)
             self.locations = list(self.expansion_locations.keys())
@@ -94,11 +116,14 @@ class EarlyAggro(
                     break
         if self.known_enemy_structures.of_type({BARRACKS, GATEWAY, PHOTONCANNON}).closer_than(50, self.start_location):
             self.close_enemy_production = True
+        if len(self.known_enemy_structures) == len(self.known_enemy_structures.flying) and self.time > 300:
+            self.floating_buildings_bm = True
         if iteration % 20 == 0:
             await self.all_buildings()
             await self.all_upgrades()
         if iteration % 2000 == 400:
             self.scout_map()
+
         self.army_micro()
         await self.build_units()
         self.cancel_attacked_hatcheries()

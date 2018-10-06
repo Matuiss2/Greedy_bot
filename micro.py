@@ -16,19 +16,6 @@ class Micro:
             return True
         return None
 
-    def move_to_next_target(self, unit, enemies):
-        """It helps on the targeting and positioning"""
-        targets_in_range_1 = enemies.closer_than(1, unit)
-        if targets_in_range_1:
-            self.move_lowhp(unit, targets_in_range_1)
-            return True
-        return None
-
-    def move_lowhp(self, unit, enemies):
-        """Move to enemy with lowest HP"""
-        target = self.closest_lowest_hp(unit, enemies)
-        self.actions.append(unit.move(target))
-
     def attack_lowhp(self, unit, enemies):
         """Attack enemy with lowest HP"""
         target = self.closest_lowest_hp(unit, enemies)
@@ -45,3 +32,16 @@ class Micro:
         lowesthp = min(unit.health for unit in enemies)
         low_enemies = enemies.filter(lambda x: x.health == lowesthp)
         return low_enemies
+
+    def move_lowhp(self, unit, enemies):
+        """Move to enemy with lowest HP"""
+        target = self.closest_lowest_hp(unit, enemies)
+        self.actions.append(unit.move(target))
+
+    def move_to_next_target(self, unit, enemies):
+        """It helps on the targeting and positioning"""
+        targets_in_range_1 = enemies.closer_than(1, unit)
+        if targets_in_range_1:
+            self.move_lowhp(unit, targets_in_range_1)
+            return True
+        return None
