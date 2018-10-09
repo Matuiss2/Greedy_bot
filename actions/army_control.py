@@ -95,18 +95,12 @@ class ArmyControl(Micro):
 
     def move_to_rallying_point(self, unit):
         """Set the point where the units should gather"""
-        rally_point = self.ai.townhalls.closest_to(self.ai._game_info.map_center).position.towards(
-            self.ai._game_info.map_center, 10
-        )
-
-        if unit.distance_to(rally_point) > 5:
-            self.ai.actions.append(unit.move(rally_point))
+        if unit.distance_to(self.ai.rally_point) > 5:
+            self.ai.actions.append(unit.move(self.ai.rally_point))
 
     def has_retreated(self, unit):
         """Identify if the unit has retreated"""
-        if self.ai.units.structure.owned.exclude_type(
-            {CREEPTUMORQUEEN, CREEPTUMOR, CREEPTUMORBURROWED, CREEPTUMORMISSILE}
-        ).closer_than(15, unit.position):
+        if unit.distance_to(self.ai.rally_point) < 5:
             self.retreat_units.remove(unit.tag)
 
     def retreat_unit(self, unit, filtered_enemies):
