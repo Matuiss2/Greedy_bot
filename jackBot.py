@@ -28,6 +28,7 @@ from sc2.constants import (
     ULTRALISK,
     ULTRALISKCAVERN,
     ZERGLING,
+CANCEL_CREEPTUMOR
 )
 from sc2.position import Point2
 
@@ -148,6 +149,7 @@ class EarlyAggro(sc2.BotAI, CreepControl):
         self.pit = None
         self.spores = None
         self.spires = None
+        self.rally_point = None
 
     def get_units(self):
         self.hatcheries = self.units(HATCHERY)
@@ -175,11 +177,12 @@ class EarlyAggro(sc2.BotAI, CreepControl):
     async def on_step(self, iteration):
         """Calls used units here, so it just calls it once per loop"""
         self.get_units()
-
         self.close_enemies_to_base = False
         self.close_enemy_production = False
-
         self.actions = []
+        self.rally_point = self.townhalls.closest_to(self._game_info.map_center).position.towards(
+            self._game_info.map_center, 10
+        )
 
         if iteration == 0:
             self._client.game_step = 4  # actions every 4 frames-(optimizing so we can get it to 1 is ideal)
