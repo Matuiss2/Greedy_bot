@@ -100,7 +100,7 @@ class ArmyControl(Micro):
 
     def has_retreated(self, unit):
         """Identify if the unit has retreated"""
-        if unit.distance_to(self.ai.rally_point) < 5:
+        if unit.distance_to(self.ai.rally_point) < 5 or not self.ai.close_enemies_to_base:
             self.retreat_units.remove(unit.tag)
 
     def retreat_unit(self, unit, filtered_enemies):
