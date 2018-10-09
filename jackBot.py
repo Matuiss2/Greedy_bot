@@ -28,7 +28,6 @@ from sc2.constants import (
     ULTRALISK,
     ULTRALISKCAVERN,
     ZERGLING,
-CANCEL_CREEPTUMOR
 )
 from sc2.position import Point2
 
