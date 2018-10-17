@@ -7,6 +7,7 @@ from sc2.player import Bot, Computer
 
 from __init__ import run_ladder_game
 from jack_bot import EarlyAggro
+from opponents.protoss import worker_rush
 
 bot = Bot(Race.Zerg, EarlyAggro())
 # Start game
@@ -18,11 +19,13 @@ if __name__ == "__main__":
     else:
         # Local game
         print("Starting local game...")
+        opponent = Bot(Race.Protoss, worker_rush.WorkerRushBot())
         random_map = random.choice(
             ["AcidPlantLE", "BlueshiftLE", "CeruleanFallLE", "DreamcatcherLE", "FractureLE", "LostAndFoundLE"]
         )
 
-        sc2.run_game(sc2.maps.get(random_map), [bot, Computer(Race.Random, Difficulty.CheatVision)], realtime=False)
+        sc2.run_game(sc2.maps.get(random_map), [bot, opponent], realtime=False)
+        # sc2.run_game(sc2.maps.get(random_map), [bot, Computer(Race.Random, Difficulty.CheatVision)], realtime=False)
         # sc2.run_game(sc2.maps.get("drone_worker_defense"), [bot], realtime=True)
         # sc2.run_game(sc2.maps.get("drone_scout_defense"), [bot], realtime=True)
         # sc2.run_game(sc2.maps.get("lings_dodge_tanks"), [bot], realtime=True)
