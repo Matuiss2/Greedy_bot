@@ -36,7 +36,5 @@ class BuildEvochamber:
 
         furthest_base = base.furthest_to(map_center)
         second_base = (base - {furthest_base}).closest_to(furthest_base)
-        await local_controller.build(
-                EVOLUTIONCHAMBER, second_base.position.towards_with_random_angle(map_center, -14)
-            )
+        await local_controller.build(EVOLUTIONCHAMBER, second_base.position.towards_with_random_angle(map_center, -14))
         return True

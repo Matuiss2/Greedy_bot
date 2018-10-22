@@ -4,6 +4,7 @@ from sc2.constants import CANCEL_MORPHLAIR, UPGRADETOLAIR_LAIR
 
 class BuildLair:
     """Maybe can be improved, it can argued that its a bit greedy"""
+
     def __init__(self, ai):
         self.ai = ai
         self.hatcheries = None
@@ -26,7 +27,9 @@ class BuildLair:
     async def handle(self, iteration):
         """Finishes the action of making the lair choosing the safest base"""
         local_controller = self.ai
-        local_controller.add_action(self.hatcheries.ready.furthest_to(local_controller._game_info.map_center)(UPGRADETOLAIR_LAIR))
+        local_controller.add_action(
+            self.hatcheries.ready.furthest_to(local_controller._game_info.map_center)(UPGRADETOLAIR_LAIR)
+        )
         return True
 
     async def morphing_hatcheries(self):

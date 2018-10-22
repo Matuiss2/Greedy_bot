@@ -14,7 +14,7 @@ _Style changes_
 
 - Fix too many booleans on a single if statement pylint error on train/overlord, expansion
 
-- Small reformatting changes on army_control
+- Small reformatting changes everywhere it could
 
 - Fix typos on army_control
 
