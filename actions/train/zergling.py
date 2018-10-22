@@ -11,11 +11,8 @@ class TrainZergling:
     async def should_handle(self, iteration):
         """good enough for now"""
         if (
-            not self.ai.pools.ready
-            and 170 <= self.ai.time <= 230
-            and not self.ai.already_pending_upgrade(ZERGLINGMOVEMENTSPEED)
-            and not self.ai.close_enemy_production
-        ):
+            not self.ai.pools.ready or not self.ai.already_pending_upgrade(ZERGLINGMOVEMENTSPEED)
+        ) and not self.ai.close_enemies_to_base:
             return False
 
         if not self.ai.can_train(ZERGLING):
