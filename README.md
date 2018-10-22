@@ -39,3 +39,5 @@ _Functional changes_
 
 - Making the first scout earlier(drone)
 
+- Make a spine on the main (initial anti-cloak code)
+
