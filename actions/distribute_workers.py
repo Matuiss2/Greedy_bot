@@ -45,12 +45,11 @@ class DistributeWorkers:
                 mineral_field = self.mineral_fields.closest_to(drone)
                 local_controller.add_action(drone.gather(mineral_field))
 
-    def calculate_distribution(self, mining_bases):
+    def calculate_distribution(self, mining_places):
         """Calculate the ideal distribution for workers"""
         local_controller = self.ai
         workers_to_distribute = [drone for drone in local_controller.drones.idle]
         mineral_tags = {mf.tag for mf in local_controller.state.mineral_field}
-        mining_places = mining_bases | local_controller.extractors.ready
         extractor_tags = {ref.tag for ref in local_controller.extractors}
         deficit_bases = []
 
