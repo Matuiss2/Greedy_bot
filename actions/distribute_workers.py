@@ -60,11 +60,19 @@ class DistributeWorkers:
                 for _ in range(difference):
                     if mining_place.name == "Extractor":
                         moving_drone = local_controller.drones.filter(
-                            lambda x: x.order_target in extractor_tags and x not in workers_to_distribute
+                            lambda drone: (
+                                drone.order_target in extractor_tags
+                                and drone not in workers_to_distribute
+                                and not drone.is_carrying_vespene
+                            )
                         )
                     else:
                         moving_drone = local_controller.drones.filter(
-                            lambda x: x.order_target in mineral_tags and x not in workers_to_distribute
+                            lambda drone: (
+                                drone.order_target in mineral_tags
+                                and drone not in workers_to_distribute
+                                and not drone.is_carrying_minerals
+                            )
                         )
                     if moving_drone:
                         workers_to_distribute.append(moving_drone.closest_to(mining_place))
