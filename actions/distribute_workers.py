@@ -1,10 +1,8 @@
 """Everything related to distributing drones to the right resource goes here"""
 from sc2.constants import EXTRACTOR, HATCHERY, HIVE, LAIR, ZERGLINGMOVEMENTSPEED
 
-from .micro import Micro
 
-
-class DistributeWorkers(Micro):
+class DistributeWorkers:
     """Some things can be improved(mostly about the ratio mineral-vespene)"""
 
     def __init__(self, ai):
@@ -29,12 +27,14 @@ class DistributeWorkers(Micro):
 
     async def handle(self, iteration):
         """Groups the resulting actions from all functions below"""
-        self.drone_dodge()
         self.gather_gas()
+
         self.distribute_to_deficits(
             self.mining_bases, self.workers_to_distribute, self.mineral_fields, self.deficit_bases
         )
+
         self.distribute_idle_workers()
+
         return True
 
     def distribute_idle_workers(self):
@@ -45,18 +45,11 @@ class DistributeWorkers(Micro):
                 mineral_field = self.mineral_fields.closest_to(drone)
                 local_controller.add_action(drone.gather(mineral_field))
 
-    def drone_dodge(self):
-        """Avoiding effects"""
-        for drone in self.ai.drones:
-            if self.dodge_effects(drone):
-                continue
-
-    def calculate_distribution(self, mining_bases):
+    def calculate_distribution(self, mining_places):
         """Calculate the ideal distribution for workers"""
         local_controller = self.ai
         workers_to_distribute = [drone for drone in local_controller.drones.idle]
         mineral_tags = {mf.tag for mf in local_controller.state.mineral_field}
-        mining_places = mining_bases | local_controller.extractors.ready
         extractor_tags = {ref.tag for ref in local_controller.extractors}
         deficit_bases = []
 
@@ -66,11 +59,19 @@ class DistributeWorkers(Micro):
                 for _ in range(difference):
                     if mining_place.name == "Extractor":
                         moving_drone = local_controller.drones.filter(
-                            lambda x: x.order_target in extractor_tags and x not in workers_to_distribute
+                            lambda drone: (
+                                drone.order_target in extractor_tags
+                                and drone not in workers_to_distribute
+                                and not drone.is_carrying_vespene
+                            )
                         )
                     else:
                         moving_drone = local_controller.drones.filter(
-                            lambda x: x.order_target in mineral_tags and x not in workers_to_distribute
+                            lambda drone: (
+                                drone.order_target in mineral_tags
+                                and drone not in workers_to_distribute
+                                and not drone.is_carrying_minerals
+                            )
                         )
                     if moving_drone:
                         workers_to_distribute.append(moving_drone.closest_to(mining_place))
