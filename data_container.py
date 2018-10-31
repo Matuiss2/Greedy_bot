@@ -43,6 +43,7 @@ class DataContainer:
         self.close_enemy_production = False
         self.counter_attack_vs_flying = False
         self.floating_buildings_bm = False
+        self.one_base_play = False
         self.hatcheries = None
         self.lairs = None
         self.hives = None
@@ -118,10 +119,11 @@ class DataContainer:
         self.prepare_enemy_data_points()
         self.close_enemy_production = self.check_for_proxy_buildings()
         self.floating_buildings_bm = self.check_for_floating_buildings()
+        self.one_base_play = self.check_for_second_bases()
 
     def check_for_proxy_buildings(self) -> bool:
         """Check if there are any proxy buildings"""
-        return bool(self.enemy_structures.of_type({BARRACKS, GATEWAY}).closer_than(75, self.start_location))
+        return bool(self.enemy_structures.of_type({BARRACKS, GATEWAY, HATCHERY}).closer_than(75, self.start_location))
 
     def check_for_floating_buildings(self) -> bool:
         """Check if some terran wants to be funny with lifting up"""
@@ -129,6 +131,15 @@ class DataContainer:
             self.enemy_structures.flying
             and len(self.enemy_structures) == len(self.enemy_structures.flying)
             and self.time > 300
+        )
+
+    def check_for_second_bases(self) -> bool:
+        """Check if its a one base play"""
+        return bool(
+            130 < self.time < 180
+            and self.overlords.furthest_to(self.start_location).closer_than(
+                25, self.enemy_structures.of_type({self.bases})
+            )
         )
 
     def prepare_enemy_data_points(self):
