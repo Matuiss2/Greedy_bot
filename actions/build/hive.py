@@ -10,15 +10,12 @@ class BuildHive:
         self.lairs = None
 
     async def should_handle(self, iteration):
-        """Builds the infestation pit, placement can maybe be improved(far from priority)"""
+        """Builds the hive"""
         local_controller = self.ai
-        if local_controller.hives:
-            return False
-
         self.lairs = local_controller.lairs.ready
-
         return (
-            local_controller.pit.ready
+            not local_controller.hives
+            and local_controller.pit.ready
             and self.lairs.idle
             and local_controller.can_afford(HIVE)
             and not await self.morphing_lairs()
@@ -32,11 +29,6 @@ class BuildHive:
     async def morphing_lairs(self):
         """Check if there is a lair morphing looping all hatcheries"""
         for hatch in self.lairs:
-            if await self.is_morphing(hatch):
+            if await self.ai.is_morphing(hatch, CANCEL_MORPHHIVE):
                 return True
         return False
-
-    async def is_morphing(self, hatch):
-        """Check if there is a lair morphing by checking the available abilities"""
-        abilities = await self.ai.get_available_abilities(hatch)
-        return CANCEL_MORPHHIVE in abilities
