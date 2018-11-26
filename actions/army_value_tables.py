@@ -2,19 +2,31 @@ from sc2.constants import (
     ADEPT,
     ARCHON,
     CARRIER,
+    CYCLONE,
     COLOSSUS,
     DARKTEMPLAR,
     DISRUPTOR,
+    GHOST,
+    HELLION,
+    HELLIONTANK,
     HIGHTEMPLAR,
     IMMORTAL,
+    MARAUDER,
+    MARINE,
     MOTHERSHIP,
     ORACLE,
     PHOENIX,
     PHOTONCANNON,
     PROBE,
+    REAPER,
+    SCV,
+    SIEGETANK,
+    SIEGETANKSIEGED,
     STALKER,
     SENTRY,
     TEMPEST,
+    THOR,
+    VIKINGASSAULT,
     VOIDRAY,
     ZEALOT,
 )
@@ -35,6 +47,7 @@ class EnemyArmyValue:
         self.normal = 1
         self.countered = 0.5
         self.massive_countered = 0.25
+        self.worker = 0.1
 
     def protoss_value_for_zergling(self, combined_enemies):
         protoss_as_zergling_table = {
@@ -46,7 +59,7 @@ class EnemyArmyValue:
             PHOTONCANNON: self.counter,
             ZEALOT: self.advantage,
             SENTRY: self.countered,
-            PROBE: 0.1,
+            PROBE: self.worker,
             HIGHTEMPLAR: self.countered,
             DISRUPTOR: self.counter,
             IMMORTAL: self.advantage,
@@ -65,7 +78,7 @@ class EnemyArmyValue:
             PHOTONCANNON: self.counter,
             ZEALOT: self.normal,
             SENTRY: self.massive_countered,
-            PROBE: 0.1,
+            PROBE: self.worker,
             HIGHTEMPLAR: self.countered,
             CARRIER: self.counter,
             DISRUPTOR: self.advantage,
@@ -85,9 +98,26 @@ class EnemyArmyValue:
             PHOTONCANNON: self.normal,
             ZEALOT: self.countered,
             SENTRY: self.countered,
-            PROBE: 0.1,
+            PROBE: self.worker,
             HIGHTEMPLAR: self.massive_countered,
             DISRUPTOR: self.normal,
             IMMORTAL: self.counter,
         }
         return general_calculation(protoss_as_ultralisks_table, combined_enemies)
+
+    def terran_value_for_zergling(self, combined_enemies):
+        terran_as_zergling_table = {
+            HELLION: self.advantage,
+            HELLIONTANK: self.counter,
+            CYCLONE: self.advantage,
+            GHOST: self.advantage,
+            MARAUDER: self.normal,
+            MARINE: self.normal,
+            REAPER: self.normal,
+            SCV: self.worker,
+            SIEGETANKSIEGED: self.counter,
+            SIEGETANK: self.advantage,
+            THOR: self.advantage,
+            VIKINGASSAULT: self.normal,
+        }
+        return general_calculation(terran_as_zergling_table, combined_enemies)
