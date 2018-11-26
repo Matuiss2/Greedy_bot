@@ -1,23 +1,30 @@
 from sc2.constants import (
-    COLUSSUS,
     ADEPT,
     ARCHON,
-    STALKER,
-    DARKTEMPLAR,
-    PHOTONCANNON,
-    ZEALOT,
-    SENTRY,
-    PROBE,
-    HIGHTEMPLAR,
-    PHOENIX,
-    ORACLE,
-    MOTHERSHIP,
-    IMMORTAL,
-    DISRUPTOR,
     CARRIER,
+    COLOSSUS,
+    DARKTEMPLAR,
+    DISRUPTOR,
+    HIGHTEMPLAR,
+    IMMORTAL,
+    MOTHERSHIP,
+    ORACLE,
+    PHOENIX,
+    PHOTONCANNON,
+    PROBE,
+    STALKER,
+    SENTRY,
     TEMPEST,
     VOIDRAY,
+    ZEALOT,
 )
+
+
+def general_calculation(table, combined_enemies):
+    total = 0
+    for enemy in combined_enemies:
+        total += table[enemy.type_id]
+    return total
 
 
 class EnemyArmyValue:
@@ -29,15 +36,9 @@ class EnemyArmyValue:
         self.countered = 0.5
         self.massive_countered = 0.25
 
-    def general_calculation(self, table):
-        total = 0
-        for enemy in self.enemies:
-            total += table[enemy.type_id]
-        return total
-
-    def protoss_value_for_zergling(self):
+    def protoss_value_for_zergling(self, combined_enemies):
         protoss_as_zergling_table = {
-            COLUSSUS: self.massive_counter,
+            COLOSSUS: self.massive_counter,
             ADEPT: self.counter,
             ARCHON: self.counter,
             STALKER: self.normal,
@@ -50,13 +51,13 @@ class EnemyArmyValue:
             DISRUPTOR: self.counter,
             IMMORTAL: self.advantage,
         }
-        return self.general_calculation(protoss_as_zergling_table)
+        return general_calculation(protoss_as_zergling_table, combined_enemies)
 
-    def protoss_value_for_hydralisks(self):
+    def protoss_value_for_hydralisks(self, combined_enemies):
         protoss_as_hydralisks_table = {
             PHOENIX: self.countered,
             ORACLE: self.normal,
-            COLUSSUS: self.counter,
+            COLOSSUS: self.counter,
             ADEPT: self.advantage,
             ARCHON: self.advantage,
             STALKER: self.normal,
@@ -72,4 +73,21 @@ class EnemyArmyValue:
             TEMPEST: self.advantage,
             VOIDRAY: self.normal,
         }
-        return self.general_calculation(protoss_as_hydralisks_table)
+        return general_calculation(protoss_as_hydralisks_table, combined_enemies)
+
+    def protoss_value_for_ultralisks(self, combined_enemies):
+        protoss_as_ultralisks_table = {
+            COLOSSUS: self.normal,
+            ADEPT: self.countered,
+            ARCHON: self.normal,
+            STALKER: self.countered,
+            DARKTEMPLAR: self.countered,
+            PHOTONCANNON: self.normal,
+            ZEALOT: self.countered,
+            SENTRY: self.countered,
+            PROBE: 0.1,
+            HIGHTEMPLAR: self.massive_countered,
+            DISRUPTOR: self.normal,
+            IMMORTAL: self.counter,
+        }
+        return general_calculation(protoss_as_ultralisks_table, combined_enemies)

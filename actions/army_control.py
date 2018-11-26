@@ -27,12 +27,14 @@ from sc2.constants import (
 from .micro import Micro
 from .hydras_control import HydraControl
 from .zergling_control import ZerglingControl
+from .army_value_tables import EnemyArmyValue
 
 
-class ArmyControl(ZerglingControl, HydraControl, Micro):
+class ArmyControl(ZerglingControl, HydraControl, Micro, EnemyArmyValue):
     """Can be improved"""
 
     def __init__(self, ai):
+        EnemyArmyValue.__init__(self)
         self.ai = ai
         self.retreat_units = set()
         self.baneling_sacrifices = {}
