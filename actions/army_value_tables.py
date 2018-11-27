@@ -148,3 +148,20 @@ class EnemyArmyValue:
             VIKINGFIGHTER: self.massive_countered,
         }
         return general_calculation(terran_as_hydralisk_table, combined_enemies)
+
+    def terran_value_for_ultralisks(self, combined_enemies):
+        terran_as_ultralisk_table = {
+            HELLION: self.massive_countered,
+            HELLIONTANK: self.countered,
+            CYCLONE: self.normal,
+            GHOST: self.normal,
+            MARAUDER: self.advantage,
+            MARINE: self.massive_countered,
+            REAPER: self.countered,
+            SCV: self.worker,
+            SIEGETANKSIEGED: self.counter,
+            SIEGETANK: self.normal,
+            THOR: self.counter,
+            VIKINGASSAULT: self.countered,
+        }
+        return general_calculation(terran_as_ultralisk_table, combined_enemies)
