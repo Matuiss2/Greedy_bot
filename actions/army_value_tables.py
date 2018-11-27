@@ -1,3 +1,4 @@
+from sc2 import Race
 from sc2.constants import (
     ADEPT,
     ARCHON,
@@ -11,6 +12,7 @@ from sc2.constants import (
     GHOST,
     HELLION,
     HELLIONTANK,
+    HYDRALISK,
     HIGHTEMPLAR,
     IMMORTAL,
     LIBERATOR,
@@ -34,25 +36,25 @@ from sc2.constants import (
     VIKINGFIGHTER,
     VOIDRAY,
     ZEALOT,
+    ZERGLING,
 )
 
 
-def general_calculation(table, combined_enemies):
+def general_calculation(table, targets):
     total = 0
-    for enemy in combined_enemies:
+    for enemy in targets:
         total += table[enemy.type_id]
     return total
 
 
 class EnemyArmyValue:
-    def __init__(self):
-        self.massive_counter = 4
-        self.counter = 3
-        self.advantage = 2
-        self.normal = 1
-        self.countered = 0.5
-        self.massive_countered = 0.25
-        self.worker = 0.1
+    massive_counter = 4
+    counter = 3
+    advantage = 2
+    normal = 1
+    countered = 0.5
+    massive_countered = 0.25
+    worker = 0.1
 
     def protoss_value_for_zergling(self, combined_enemies):
         protoss_as_zergling_table = {
@@ -165,3 +167,18 @@ class EnemyArmyValue:
             VIKINGASSAULT: self.countered,
         }
         return general_calculation(terran_as_ultralisk_table, combined_enemies)
+
+    def enemy_value(self, unit, target_group, hydra_targect_group):
+        local_controller = self.ai
+        if local_controller.enemy_race == Race.Protoss:
+            if unit.type_id == ZERGLING:
+                return self.protoss_value_for_zergling(target_group)
+            if unit.type_id == HYDRALISK:
+                return self.protoss_value_for_hydralisks(hydra_targect_group)
+            return self.protoss_value_for_ultralisks(target_group)
+        if local_controller.enemy_race == Race.Terran:
+            if unit.type_id == ZERGLING:
+                return self.terran_value_for_zergling(target_group)
+            if unit.type_id == HYDRALISK:
+                return self.terran_value_for_hydralisks(hydra_targect_group)
+            return self.terran_value_for_ultralisks(target_group)

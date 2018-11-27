@@ -34,7 +34,6 @@ class ArmyControl(ZerglingControl, HydraControl, Micro, EnemyArmyValue):
     """Can be improved"""
 
     def __init__(self, ai):
-        EnemyArmyValue.__init__(self)
         self.ai = ai
         self.retreat_units = set()
         self.baneling_sacrifices = {}
@@ -68,6 +67,7 @@ class ArmyControl(ZerglingControl, HydraControl, Micro, EnemyArmyValue):
         # enemy_detection = enemy_units.not_structure.of_type({OVERSEER, OBSERVER})
         combined_enemies, targets, atk_force, hydra_targets = self.set_unit_groups()
         for attacking_unit in atk_force:
+            enemy_army_value = self.enemy_value(attacking_unit, targets, hydra_targets)
             if self.dodge_effects(attacking_unit):
                 continue
             unit_position = attacking_unit.position
