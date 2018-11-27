@@ -1,6 +1,8 @@
 from sc2.constants import (
     ADEPT,
     ARCHON,
+    BANSHEE,
+    BATTLECRUISER,
     CARRIER,
     CYCLONE,
     COLOSSUS,
@@ -11,8 +13,10 @@ from sc2.constants import (
     HELLIONTANK,
     HIGHTEMPLAR,
     IMMORTAL,
+    LIBERATOR,
     MARAUDER,
     MARINE,
+    MEDIVAC,
     MOTHERSHIP,
     ORACLE,
     PHOENIX,
@@ -27,6 +31,7 @@ from sc2.constants import (
     TEMPEST,
     THOR,
     VIKINGASSAULT,
+    VIKINGFIGHTER,
     VOIDRAY,
     ZEALOT,
 )
@@ -121,3 +126,25 @@ class EnemyArmyValue:
             VIKINGASSAULT: self.normal,
         }
         return general_calculation(terran_as_zergling_table, combined_enemies)
+
+    def terran_value_for_hydralisks(self, combined_enemies):
+        terran_as_hydralisk_table = {
+            HELLION: self.normal,
+            HELLIONTANK: self.advantage,
+            CYCLONE: self.normal,
+            GHOST: self.normal,
+            MARAUDER: self.advantage,
+            MARINE: self.countered,
+            REAPER: self.countered,
+            SCV: self.worker,
+            SIEGETANKSIEGED: self.massive_counter,
+            SIEGETANK: self.advantage,
+            THOR: self.advantage,
+            VIKINGASSAULT: self.countered,
+            BANSHEE: self.normal,
+            BATTLECRUISER: self.counter,
+            LIBERATOR: self.advantage,
+            MEDIVAC: self.massive_countered,
+            VIKINGFIGHTER: self.massive_countered,
+        }
+        return general_calculation(terran_as_hydralisk_table, combined_enemies)
