@@ -5,10 +5,13 @@ from sc2.constants import (
     BANELING,
     BANSHEE,
     BATTLECRUISER,
+    BROODLING,
+    BROODLORD,
     BUNKER,
     CARRIER,
     CYCLONE,
     COLOSSUS,
+    CORRUPTOR,
     DARKTEMPLAR,
     DISRUPTOR,
     DRONE,
@@ -24,13 +27,17 @@ from sc2.constants import (
     INFESTOR,
     LIBERATOR,
     LOCUSTMP,
+    LOCUSTMPFLYING,
     LURKERMP,
     LURKERMPBURROWED,
     MARAUDER,
     MARINE,
     MEDIVAC,
     MOTHERSHIP,
+    MUTALISK,
     ORACLE,
+    OVERLORD,
+    OVERSEER,
     PHOENIX,
     PHOTONCANNON,
     PROBE,
@@ -50,6 +57,7 @@ from sc2.constants import (
     ULTRALISK,
     VIKINGASSAULT,
     VIKINGFIGHTER,
+    VIPER,
     VOIDRAY,
     ZEALOT,
     ZERGLING,
@@ -59,6 +67,7 @@ from sc2.constants import (
 def general_calculation(table, targets):
     total = 0
     for enemy in targets:
+        table.setdefault(enemy.type_id, 1)
         total += table[enemy.type_id]
     return total
 
@@ -72,7 +81,7 @@ class EnemyArmyValue:
     massive_countered = 0.25
     worker = 0.1
 
-    def protoss_value_for_zergling(self, combined_enemies):
+    def protoss_value_for_zerglings(self, combined_enemies):
         protoss_as_zergling_table = {
             COLOSSUS: self.massive_counter,
             ADEPT: self.counter,
@@ -128,7 +137,7 @@ class EnemyArmyValue:
         }
         return general_calculation(protoss_as_ultralisks_table, combined_enemies)
 
-    def terran_value_for_zergling(self, combined_enemies):
+    def terran_value_for_zerglings(self, combined_enemies):
         terran_as_zergling_table = {
             BUNKER: self.counter,
             HELLION: self.advantage,
@@ -187,8 +196,8 @@ class EnemyArmyValue:
         }
         return general_calculation(terran_as_ultralisk_table, combined_enemies)
 
-    def zerg_value_for_zergling(self, combined_enemies):
-        protoss_as_zergling_table = {
+    def zerg_value_for_zerglings(self, combined_enemies):
+        zerg_as_zergling_table = {
             LARVA: 0,
             QUEEN: self.normal,
             ZERGLING: self.normal,
@@ -206,20 +215,55 @@ class EnemyArmyValue:
             LOCUSTMP: self.counter,
             ULTRALISK: self.massive_counter,
             SPINECRAWLER: self.advantage,
+            BROODLING: self.normal,
         }
-        return general_calculation(protoss_as_zergling_table, combined_enemies)
+        return general_calculation(zerg_as_zergling_table, combined_enemies)
 
-    def enemy_value(self, unit, target_group, hydra_targect_group):
+    def zerg_value_for_hydralisk(self, combined_enemies):
+        zerg_as_hydralisks_table = {
+            LARVA: 0,
+            QUEEN: self.normal,
+            ZERGLING: self.countered,
+            BANELING: self.advantage,
+            ROACH: self.normal,
+            RAVAGER: self.advantage,
+            HYDRALISK: self.normal,
+            LURKERMP: self.normal,
+            DRONE: self.worker,
+            LURKERMPBURROWED: self.massive_counter,
+            INFESTOR: self.countered,
+            INFESTEDTERRAN: self.countered,
+            INFESTEDTERRANSEGG: self.massive_countered,
+            SWARMHOSTMP: self.massive_countered,
+            LOCUSTMP: self.counter,
+            ULTRALISK: self.massive_counter,
+            SPINECRAWLER: self.normal,
+            LOCUSTMPFLYING: self.countered,
+            OVERLORD: 0,
+            OVERSEER: 0,
+            MUTALISK: self.normal,
+            CORRUPTOR: 0,
+            VIPER: self.countered,
+            BROODLORD: self.counter,
+            BROODLING: self.countered,
+        }
+        return general_calculation(zerg_as_hydralisks_table, combined_enemies)
+
+    def enemy_value(self, unit, target_group, hydra_target_group):
         local_controller = self.ai
         if local_controller.enemy_race == Race.Protoss:
             if unit.type_id == ZERGLING:
-                return self.protoss_value_for_zergling(target_group)
+                return self.protoss_value_for_zerglings(target_group)
             if unit.type_id == HYDRALISK:
-                return self.protoss_value_for_hydralisks(hydra_targect_group)
+                return self.protoss_value_for_hydralisks(hydra_target_group)
             return self.protoss_value_for_ultralisks(target_group)
         if local_controller.enemy_race == Race.Terran:
             if unit.type_id == ZERGLING:
-                return self.terran_value_for_zergling(target_group)
+                return self.terran_value_for_zerglings(target_group)
             if unit.type_id == HYDRALISK:
-                return self.terran_value_for_hydralisks(hydra_targect_group)
+                return self.terran_value_for_hydralisks(hydra_target_group)
             return self.terran_value_for_ultralisks(target_group)
+        if unit.type_id == ZERGLING:
+            return self.zerg_value_for_zerglings(target_group)
+        if unit.type_id == HYDRALISK:
+            return self.zerg_value_for_hydralisks(hydra_target_group)
