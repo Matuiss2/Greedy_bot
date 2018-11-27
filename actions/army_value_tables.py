@@ -2,20 +2,30 @@ from sc2 import Race
 from sc2.constants import (
     ADEPT,
     ARCHON,
+    BANELING,
     BANSHEE,
     BATTLECRUISER,
+    BUNKER,
     CARRIER,
     CYCLONE,
     COLOSSUS,
     DARKTEMPLAR,
     DISRUPTOR,
+    DRONE,
     GHOST,
     HELLION,
     HELLIONTANK,
     HYDRALISK,
     HIGHTEMPLAR,
     IMMORTAL,
+    LARVA,
+    INFESTEDTERRAN,
+    INFESTEDTERRANSEGG,
+    INFESTOR,
     LIBERATOR,
+    LOCUSTMP,
+    LURKERMP,
+    LURKERMPBURROWED,
     MARAUDER,
     MARINE,
     MEDIVAC,
@@ -24,14 +34,20 @@ from sc2.constants import (
     PHOENIX,
     PHOTONCANNON,
     PROBE,
+    QUEEN,
+    RAVAGER,
     REAPER,
+    ROACH,
     SCV,
+    SENTRY,
     SIEGETANK,
     SIEGETANKSIEGED,
+    SPINECRAWLER,
     STALKER,
-    SENTRY,
+    SWARMHOSTMP,
     TEMPEST,
     THOR,
+    ULTRALISK,
     VIKINGASSAULT,
     VIKINGFIGHTER,
     VOIDRAY,
@@ -114,6 +130,7 @@ class EnemyArmyValue:
 
     def terran_value_for_zergling(self, combined_enemies):
         terran_as_zergling_table = {
+            BUNKER: self.counter,
             HELLION: self.advantage,
             HELLIONTANK: self.counter,
             CYCLONE: self.advantage,
@@ -131,6 +148,7 @@ class EnemyArmyValue:
 
     def terran_value_for_hydralisks(self, combined_enemies):
         terran_as_hydralisk_table = {
+            BUNKER: self.normal,
             HELLION: self.normal,
             HELLIONTANK: self.advantage,
             CYCLONE: self.normal,
@@ -153,6 +171,7 @@ class EnemyArmyValue:
 
     def terran_value_for_ultralisks(self, combined_enemies):
         terran_as_ultralisk_table = {
+            BUNKER: self.countered,
             HELLION: self.massive_countered,
             HELLIONTANK: self.countered,
             CYCLONE: self.normal,
@@ -167,6 +186,28 @@ class EnemyArmyValue:
             VIKINGASSAULT: self.countered,
         }
         return general_calculation(terran_as_ultralisk_table, combined_enemies)
+
+    def zerg_value_for_zergling(self, combined_enemies):
+        protoss_as_zergling_table = {
+            LARVA: 0,
+            QUEEN: self.normal,
+            ZERGLING: self.normal,
+            BANELING: self.advantage,
+            ROACH: self.advantage,
+            RAVAGER: self.advantage,
+            HYDRALISK: self.advantage,
+            LURKERMP: self.advantage,
+            DRONE: self.worker,
+            LURKERMPBURROWED: self.massive_counter,
+            INFESTOR: self.countered,
+            INFESTEDTERRAN: self.normal,
+            INFESTEDTERRANSEGG: self.massive_countered,
+            SWARMHOSTMP: self.countered,
+            LOCUSTMP: self.counter,
+            ULTRALISK: self.massive_counter,
+            SPINECRAWLER: self.advantage,
+        }
+        return general_calculation(protoss_as_zergling_table, combined_enemies)
 
     def enemy_value(self, unit, target_group, hydra_targect_group):
         local_controller = self.ai

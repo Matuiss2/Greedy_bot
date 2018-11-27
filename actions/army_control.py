@@ -67,10 +67,12 @@ class ArmyControl(ZerglingControl, HydraControl, Micro, EnemyArmyValue):
         # enemy_detection = enemy_units.not_structure.of_type({OVERSEER, OBSERVER})
         combined_enemies, targets, atk_force, hydra_targets = self.set_unit_groups()
         for attacking_unit in atk_force:
-            enemy_army_value = self.enemy_value(attacking_unit, targets, hydra_targets)
+            unit_position = attacking_unit.position
+            enemy_army_value = self.enemy_value(
+                attacking_unit, targets.closer_than(17, unit_position), hydra_targets.closer_than(17, unit_position)
+            )
             if self.dodge_effects(attacking_unit):
                 continue
-            unit_position = attacking_unit.position
             attack_command = attacking_unit.attack
             if self.anti_proxy_trigger(attacking_unit):
                 if self.attack_enemy_proxy_units(targets, attacking_unit):
