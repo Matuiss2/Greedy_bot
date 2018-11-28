@@ -1,5 +1,5 @@
 """Everything related to army value tables go here"""
-from sc2 import Race
+import numpy as np
 from sc2.constants import (
     ADEPT,
     ARCHON,
@@ -76,6 +76,7 @@ def general_calculation(table, targets):
 
 class EnemyArmyValue:
     """Separate the enemy army values by unit and race"""
+
     massive_counter = 4
     counter = 3
     advantage = 2
@@ -285,23 +286,54 @@ class EnemyArmyValue:
         }
         return general_calculation(zerg_as_ultralisk_table, combined_enemies)
 
-    def enemy_value(self, unit, target_group, hydra_target_group):
-        """Chooses the right function to calculate returns the right value based on the situation"""
-        local_controller = self.ai
-        if local_controller.enemy_race == Race.Protoss:
-            if unit.type_id == ZERGLING:
-                return self.protoss_value_for_zerglings(target_group)
-            if unit.type_id == HYDRALISK:
-                return self.protoss_value_for_hydralisks(hydra_target_group)
-            return self.protoss_value_for_ultralisks(target_group)
-        if local_controller.enemy_race == Race.Terran:
-            if unit.type_id == ZERGLING:
-                return self.terran_value_for_zerglings(target_group)
-            if unit.type_id == HYDRALISK:
-                return self.terran_value_for_hydralisks(hydra_target_group)
-            return self.terran_value_for_ultralisks(target_group)
+    def enemy_value_terran(self, unit, target_group):
+        """Returns the right enemy value based on the unit vs terran"""
+        if unit.type_id == ZERGLING:
+            return self.terran_value_for_zerglings(target_group)
+        if unit.type_id == HYDRALISK:
+            return self.terran_value_for_hydralisks(target_group)
+        return self.terran_value_for_ultralisks(target_group)
+
+    def enemy_value_protoss(self, unit, target_group):
+        """Returns the right enemy value based on the unit vs protoss"""
+        if unit.type_id == ZERGLING:
+            return self.protoss_value_for_zerglings(target_group)
+        if unit.type_id == HYDRALISK:
+            return self.protoss_value_for_hydralisks(target_group)
+        return self.protoss_value_for_ultralisks(target_group)
+
+    def enemy_value_zerg(self, unit, target_group):
+        """Returns the right enemy value based on the unit vs zerg"""
         if unit.type_id == ZERGLING:
             return self.zerg_value_for_zerglings(target_group)
         if unit.type_id == HYDRALISK:
-            return self.zerg_value_for_hydralisks(hydra_target_group)
+            return self.zerg_value_for_hydralisks(target_group)
         return self.zerg_value_for_ultralisks(target_group)
+
+    def battling_force_value(self, unit_position, zvalue, hvalue, uvalue):
+        """Returns the right value for our army that is in battle"""
+        local_controller = self.ai
+        return np.sum(
+            np.array(
+                [
+                    len(local_controller.zerglings.closer_than(13, unit_position)),
+                    len(local_controller.ultralisks.closer_than(13, unit_position)),
+                    len(local_controller.hydras.closer_than(13, unit_position)),
+                ]
+            )
+            * np.array([zvalue, hvalue, uvalue])
+        )
+
+    def gathering_force_value(self, zvalue, hvalue, uvalue):
+        """Returns the right value for our army that is gathering"""
+        local_controller = self.ai
+        return np.sum(
+            np.array(
+                [
+                    len(local_controller.zerglings.ready),
+                    len(local_controller.hydras.ready),
+                    len(local_controller.ultralisks.ready),
+                ]
+            )
+            * np.array([zvalue, hvalue, uvalue])
+        )
