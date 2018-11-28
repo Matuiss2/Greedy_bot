@@ -125,10 +125,10 @@ class ArmyControl(ZerglingControl, HydraControl, Micro, EnemyArmyValue):
         local_controller = self.ai
         if local_controller.enemy_race == Race.Zerg:
             enemy_value = self.enemy_value_zerg(unit, target)
-        elif local_controller.enemy_race == Race.Zerg:
-            enemy_value = self.enemy_value_zerg(unit, target)
-        elif local_controller.enemy_race == Race.Zerg:
-            enemy_value = self.enemy_value_zerg(unit, target)
+        elif local_controller.enemy_race == Race.Terran:
+            enemy_value = self.enemy_value_terran(unit, target)
+        elif local_controller.enemy_race == Race.Protoss:
+            enemy_value = self.enemy_value_protoss(unit, target)
         if (
             local_controller.townhalls
             and not local_controller.close_enemies_to_base
