@@ -69,7 +69,7 @@ class ArmyControl(ZerglingControl, HydraControl, Micro, EnemyArmyValue):
         for attacking_unit in atk_force:
             unit_position = attacking_unit.position
             enemy_army_value = self.enemy_value(
-                attacking_unit, targets.closer_than(17, unit_position), hydra_targets.closer_than(17, unit_position)
+                attacking_unit, targets.closer_than(20, unit_position), hydra_targets.closer_than(20, unit_position)
             )
             if self.dodge_effects(attacking_unit):
                 continue
@@ -86,12 +86,12 @@ class ArmyControl(ZerglingControl, HydraControl, Micro, EnemyArmyValue):
                 self.has_retreated(attacking_unit)
                 continue
             if attacking_unit.type_id == HYDRALISK and hydra_targets and hydra_targets.closer_than(17, unit_position):
-                if self.retreat_unit(attacking_unit, combined_enemies):
+                if self.retreat_unit(attacking_unit, combined_enemies, enemy_army_value):
                     continue
                 if self.micro_hydras(hydra_targets, attacking_unit):
                     continue
             if targets and targets.closer_than(17, unit_position):
-                if self.retreat_unit(attacking_unit, combined_enemies):
+                if self.retreat_unit(attacking_unit, combined_enemies, enemy_army_value):
                     continue
                 if await self.handling_walls_and_attacking(attacking_unit, targets):
                     continue
@@ -117,7 +117,7 @@ class ArmyControl(ZerglingControl, HydraControl, Micro, EnemyArmyValue):
         if self.ai.townhalls.closer_than(15, unit.position):
             self.retreat_units.remove(unit.tag)
 
-    def retreat_unit(self, unit, combined_enemies):
+    def retreat_unit(self, unit, combined_enemies, enemy_value):
         """Tell the unit to retreat when overwhelmed"""
         local_controller = self.ai
         if (
