@@ -7,10 +7,7 @@ class BuildExpansion:
 
     def __init__(self, ai):
         self.ai = ai
-        self.send_worker = 1
-        self.did_send_worker = 2
         self.worker_to_first_base = False
-
 
     async def should_handle(self, iteration):
         """Good for now, maybe the 7th or more hatchery can be postponed
@@ -19,8 +16,8 @@ class BuildExpansion:
         base = local_controller.townhalls
         base_amount = len(base)
         game_time = local_controller.time
-        if not self.worker_to_first_base and base_amount < 2 and local_controller.minerals > 225:
-            self.worker_to_first_base = self.send_worker
+        if not self.worker_to_first_base and base_amount == 1 and local_controller.minerals > 225:
+            self.worker_to_first_base = True
             return True
 
         if (
@@ -45,9 +42,9 @@ class BuildExpansion:
         """Expands to the nearest expansion location using the nearest drone to it"""
         local_controller = self.ai
         action = local_controller.add_action
-        if self.worker_to_first_base == self.send_worker:
+        if self.worker_to_first_base:
             action(await self.send_worker_to_next_expansion())
-            self.worker_to_first_base = self.did_send_worker
+            self.worker_to_first_base = False
             return True
         for expansion in local_controller.ordered_expansions:
             if await local_controller.can_place(HATCHERY, expansion):

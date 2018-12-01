@@ -18,7 +18,7 @@ class BuildSpores:
         self.enemy_flying_dmg_units = (
             local_controller.pools.ready
             and local_controller.flying_enemies
-            and (not (len(spores) > len(base) or local_controller.close_enemies_to_base))
+            and not (len(spores) > len(base) or local_controller.close_enemies_to_base)
             and (au for au in local_controller.flying_enemies if au.can_attack_ground)
         )
         if base:

@@ -24,10 +24,10 @@ class BuildPool:
         if position:
             await local_controller.build(SPAWNINGPOOL, position)
             return True
-        await local_controller.build(SPAWNINGPOOL, near=self.find_position())
+        await local_controller.build(SPAWNINGPOOL, near=self.hardcoded_position())
         return True
 
-    def find_position(self):
+    def hardcoded_position(self):
         """Previous placement"""
         local_controller = self.ai
         map_center = local_controller.game_info.map_center
