@@ -28,9 +28,15 @@ class BuildEvochamber:
         if position:
             await local_controller.build(EVOLUTIONCHAMBER, position)
             return True
-        furthest_base = local_controller.furthest_townhall_to_map_center
-        second_base = (local_controller.townhalls - {furthest_base}).closest_to(furthest_base)
-        await local_controller.build(
-            EVOLUTIONCHAMBER, second_base.position.towards_with_random_angle(local_controller.game_info.map_center, -14)
-        )
+        await local_controller.build(EVOLUTIONCHAMBER, self.hardcoded_position())
         return True
+
+    def hardcoded_position(self):
+        """Previous placement"""
+        local_controller = self.ai
+        furthest_base = local_controller.furthest_townhall_to_map_center
+        return (
+            (local_controller.townhalls - {furthest_base})
+            .closest_to(furthest_base)
+            .position.towards_with_random_angle(local_controller.game_info.map_center, -14)
+        )

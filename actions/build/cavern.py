@@ -26,8 +26,13 @@ class BuildCavern:
             return True
         await local_controller.build(
             ULTRALISKCAVERN,
-            near=local_controller.townhalls.furthest_to(local_controller.game_info.map_center).position.towards(
-                local_controller.main_base_ramp.depot_in_middle, 6
+            near= self.hardcoded_position()
             ),
-        )
         return True
+
+    def hardcoded_position(self):
+        """Previous placement"""
+        local_controller = self.ai
+        return local_controller.townhalls.furthest_to(local_controller.game_info.map_center).position.towards(
+                local_controller.main_base_ramp.depot_in_middle, 6
+            )
